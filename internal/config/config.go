@@ -16,6 +16,7 @@ type Config struct {
 	Server        ServerConfig         `koanf:"server" validate:"required"`
 	Redis         RedisConfig          `koanf:"redis" validate:"required"`
 	ClickHouse    ClickHouseConfig     `koanf:"clickhouse" validate:"required"`
+	Database      DatabaseConfig       `koanf:"database" validate:"required"`
 	Logging       LoggingConfig        `koanf:"logging" validate:"required"`
 	App           AppConfig            `koanf:"app" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
@@ -47,6 +48,10 @@ type ClickHouseConfig struct {
 	MaxOpen         int    `koanf:"max_open" validate:"required,min=1,max=1000"`
 	MaxIdle         int    `koanf:"max_idle" validate:"omitempty,min=0"`
 	ConnMaxLifetime int    `koanf:"conn_max_lifetime" validate:"omitempty,min=1"`
+}
+
+type DatabaseConfig struct {
+	URL string `koanf:"url" validate:"required"`
 }
 
 type LoggingConfig struct {
