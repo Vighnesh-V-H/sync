@@ -88,8 +88,9 @@ func LoadConfig() (*Config, error) {
 	tempLogger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 
 	k := koanf.New(".")
-	err := k.Load(env.Provider("ANALYTICS_", ".", func(s string) string {
-		return strings.ToLower(strings.TrimPrefix(s, "ANALYTICS_"))
+	err := k.Load(env.Provider("SYNC_", ".", func(s string) string {
+		// SYNC_PRIMARY_ENV -> primary.env
+		return strings.ToLower(strings.Replace(strings.TrimPrefix(s, "SYNC_"), "_", ".", 1))
 	}), nil)
 	if err != nil {
 		tempLogger.Fatal().Err(err).Msg("could not load initial env variables")
@@ -101,11 +102,6 @@ func LoadConfig() (*Config, error) {
 		tempLogger.Fatal().Err(err).Msg("could not unmarshal main config")
 	}
 
-	validate := validator.New()
-	err = validate.Struct(mainConfig)
-	if err != nil {
-		tempLogger.Fatal().Err(err).Msg("config validation failed")
-	}
 
 	if mainConfig.Observability == nil {
 		mainConfig.Observability = DefaultObservabilityConfig()
