@@ -19,11 +19,16 @@ type Config struct {
 	Database      DatabaseConfig       `koanf:"database" validate:"required"`
 	Logging       LoggingConfig        `koanf:"logging" validate:"required"`
 	App           AppConfig            `koanf:"app" validate:"required"`
+	JWT           JWTConfig            `koanf:"jwt" validate:"required"`
 	Observability *ObservabilityConfig `koanf:"observability"`
 }
 
 type Primary struct {
 	Env string `koanf:"env" validate:"required,oneof=dev staging prod"`
+}
+
+type JWTConfig struct {
+	Secret string `koanf:"secret" validate:"required"`
 }
 
 type ServerConfig struct {
@@ -101,7 +106,6 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		tempLogger.Fatal().Err(err).Msg("could not unmarshal main config")
 	}
-
 
 	if mainConfig.Observability == nil {
 		mainConfig.Observability = DefaultObservabilityConfig()

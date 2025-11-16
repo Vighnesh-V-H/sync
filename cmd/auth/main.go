@@ -15,6 +15,7 @@ import (
 	"github.com/Vighnesh-V-H/sync/internal/repositories"
 	"github.com/Vighnesh-V-H/sync/internal/routes"
 	"github.com/Vighnesh-V-H/sync/internal/service"
+	"github.com/Vighnesh-V-H/sync/internal/utils"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -22,13 +23,11 @@ import (
 func main() {
 
 	cfg, err := config.LoadConfig()
-	fmt.Println(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	
 	logCfg := logger.Config{
 		Level:       cfg.Logging.Level,
 		Format:      "json",
@@ -42,15 +41,19 @@ func main() {
 	log := logger.New(logCfg)
 	log.Info().Msg("Starting auth service")
 
-	
 	database, err := db.NewDB(cfg.Database.URL, log)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize database")
 	}
 	defer database.Close()
 
+	jwtCfg := utils.JWTConfig{
+		Secret: cfg.JWT.Secret,
+		Expiry: time.Hour * 24 * 7,
+	}
+
 	authRepo := repositories.NewAuthRepository(database, log)
-	authSvc := service.NewAuthService(authRepo)
+	authSvc := service.NewAuthService(authRepo, jwtCfg)
 	authHandler := handler.NewAuthHandler(authSvc)
 
 	if cfg.Primary.Env == "prod" {
@@ -62,7 +65,6 @@ func main() {
 
 	routes.SetupAuthRoutes(api, authHandler)
 
-	
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	log.Info().Str("address", addr).Msg("Starting HTTP server")
 
