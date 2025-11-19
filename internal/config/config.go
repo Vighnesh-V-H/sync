@@ -34,6 +34,8 @@ type JWTConfig struct {
 type ServerConfig struct {
 	Host               string   `koanf:"host" validate:"required"`
 	Port               int      `koanf:"port" validate:"required,min=1,max=65535"`
+	AuthPort           int      `koanf:"auth_port" validate:"required,min=1,max=65535"`
+	EventsPort         int      `koanf:"events_port" validate:"required,min=1,max=65535"`
 	ReadTimeout        int      `koanf:"read_timeout" validate:"required,min=1"`
 	WriteTimeout       int      `koanf:"write_timeout" validate:"required,min=1"`
 	IdleTimeout        int      `koanf:"idle_timeout" validate:"required,min=1"`
@@ -123,6 +125,12 @@ func LoadConfig() (*Config, error) {
 	}
 	if mainConfig.Server.Port == 0 {
 		mainConfig.Server.Port = 8080
+	}
+	if mainConfig.Server.AuthPort == 0 {
+		mainConfig.Server.AuthPort = 8081
+	}
+	if mainConfig.Server.EventsPort == 0 {
+		mainConfig.Server.EventsPort = 8082
 	}
 	if mainConfig.Server.ReadTimeout == 0 {
 		mainConfig.Server.ReadTimeout = 10

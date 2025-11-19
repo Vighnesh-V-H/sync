@@ -65,7 +65,7 @@ func main() {
 
 	routes.SetupAuthRoutes(api, authHandler)
 
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.AuthPort)
 	log.Info().Str("address", addr).Msg("Starting HTTP server")
 
 	go func() {

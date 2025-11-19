@@ -15,9 +15,9 @@ import (
 	"github.com/Vighnesh-V-H/sync/internal/repositories"
 	"github.com/Vighnesh-V-H/sync/internal/routes"
 	"github.com/Vighnesh-V-H/sync/internal/service"
-	"github.com/Vighnesh-V-H/sync/internal/utils"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 		logCfg.Format = "console"
 	}
 	log := logger.New(logCfg)
-	log.Info().Msg("Starting auth service")
+	log.Info().Msg("Starting events service")
 
 	database, err := db.NewDB(cfg.Database.URL, log)
 	if err != nil {
@@ -47,14 +47,27 @@ func main() {
 	}
 	defer database.Close()
 
-	jwtCfg := utils.JWTConfig{
-		Secret: cfg.JWT.Secret,
-		Expiry: time.Hour * 24 * 7,
-	}
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:         cfg.Redis.URL,
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		DialTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
+		ReadTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
+		WriteTimeout: time.Duration(cfg.Redis.Timeout) * time.Second,
+	})
+	defer redisClient.Close()
 
-	authRepo := repositories.NewAuthRepository(database, log)
-	authSvc := service.NewAuthService(authRepo, jwtCfg)
-	authHandler := handler.NewAuthHandler(authSvc)
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer pingCancel()
+	if err := redisClient.Ping(pingCtx).Err(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to Redis")
+	}
+	log.Info().Msg("Successfully connected to Redis")
+
+	
+	eventRepo := repositories.NewEventRepository(database, redisClient, log)
+	eventSvc := service.NewEventService(eventRepo, log)
+	eventHandler := handler.NewEventHandler(eventSvc, log)
 
 	if cfg.Primary.Env == "prod" {
 		gin.SetMode(gin.ReleaseMode)
@@ -63,9 +76,9 @@ func main() {
 	router := gin.Default()
 	api := router.Group("/api/v1")
 
-	routes.SetupAuthRoutes(api, authHandler)
+	routes.SetupEventRoutes(api, eventHandler)
 
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.EventsPort)
 	log.Info().Str("address", addr).Msg("Starting HTTP server")
 
 	go func() {
