@@ -8,6 +8,6 @@ import (
 func SetupEventRoutes(router gin.IRouter, h *handler.EventHandler) {
 	event := router.Group("/event")
 	{
-		event.POST("", h.AddEvent)
+		event.POST("/add", h.AddEvent)
 	}
 }

@@ -53,8 +53,8 @@ func main() {
 	}
 
 	authRepo := repositories.NewAuthRepository(database, log)
-	authSvc := service.NewAuthService(authRepo, jwtCfg, log)
-	authHandler := handler.NewAuthHandler(authSvc, log)
+	authSvc := service.NewAuthService(authRepo, jwtCfg)
+	authHandler := handler.NewAuthHandler(authSvc)
 
 	if cfg.Primary.Env == "prod" {
 		gin.SetMode(gin.ReleaseMode)
