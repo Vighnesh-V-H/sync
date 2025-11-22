@@ -24,12 +24,13 @@ type JWTConfig struct {
 	Expiry time.Duration
 }
 
-func GenerateJWT(id string, email string, cfg JWTConfig) (string, error) {
+func GenerateJWT(id string, email string, apiKey string, cfg JWTConfig) (string, error) {
 	claims := jwt.MapClaims{
-		"id":    id,
-		"email": email,
-		"exp":   time.Now().Add(cfg.Expiry).Unix(),
-		"iat":   time.Now().Unix(),
+		"id":      id,
+		"email":   email,
+		"api_key": apiKey,
+		"exp":     time.Now().Add(cfg.Expiry).Unix(),
+		"iat":     time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

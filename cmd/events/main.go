@@ -47,15 +47,26 @@ func main() {
 	}
 	defer database.Close()
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:         cfg.Redis.URL,
-		Password:     cfg.Redis.Password,
-		DB:           cfg.Redis.DB,
-		DialTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
-		ReadTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
-		WriteTimeout: time.Duration(cfg.Redis.Timeout) * time.Second,
-	})
+	opt, err := redis.ParseURL(cfg.Redis.URL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse Upstash Redis URL")
+	}
+	opt.DialTimeout = time.Duration(cfg.Redis.Timeout) * time.Second
+	opt.ReadTimeout = time.Duration(cfg.Redis.Timeout) * time.Second
+	opt.WriteTimeout = time.Duration(cfg.Redis.Timeout) * time.Second
+
+	redisClient := redis.NewClient(opt)
 	defer redisClient.Close()
+
+	// Old method (commented out):
+	// redisClient := redis.NewClient(&redis.Options{
+	// 	Addr:         cfg.Redis.URL,
+	// 	Password:     cfg.Redis.Password,
+	// 	DB:           cfg.Redis.DB,
+	// 	DialTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
+	// 	ReadTimeout:  time.Duration(cfg.Redis.Timeout) * time.Second,
+	// 	WriteTimeout: time.Duration(cfg.Redis.Timeout) * time.Second,
+	// })
 
 	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer pingCancel()
@@ -64,7 +75,6 @@ func main() {
 	}
 	log.Info().Msg("Successfully connected to Redis")
 
-	
 	eventRepo := repositories.NewEventRepository(database, redisClient, log)
 	eventSvc := service.NewEventService(eventRepo, log)
 	eventHandler := handler.NewEventHandler(eventSvc, log)
@@ -76,7 +86,7 @@ func main() {
 	router := gin.Default()
 	api := router.Group("/api/v1")
 
-	routes.SetupEventRoutes(api, eventHandler)
+	routes.SetupEventRoutes(api, eventHandler, cfg.JWT.Secret)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.EventsPort)
 	log.Info().Str("address", addr).Msg("Starting HTTP server")

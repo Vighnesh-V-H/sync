@@ -21,6 +21,24 @@ func NewEventHandler(svc *service.EventService, logger zerolog.Logger) *EventHan
 }
 
 func (h *EventHandler) AddEvent(c *gin.Context) {
+	apiKeyValue, exists := c.Get("api_key")
+	if !exists {
+		h.logger.Error().
+			Str("ip", c.ClientIP()).
+			Msg("API key not found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	apiKey, ok := apiKeyValue.(string)
+	if !ok {
+		h.logger.Error().
+			Str("ip", c.ClientIP()).
+			Msg("Invalid API key type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
 	var req service.AddEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn().Err(err).
@@ -32,25 +50,9 @@ func (h *EventHandler) AddEvent(c *gin.Context) {
 		return
 	}
 
-	if req.ApiKey == "" {
-		h.logger.Warn().
-			Str("ip", c.ClientIP()).
-			Msg("Missing api_key in event request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "api_key is required"})
-		return
-	}
-	if req.ID == "" {
-		h.logger.Warn().
-			Str("api_key", req.ApiKey).
-			Str("ip", c.ClientIP()).
-			Msg("Missing event ID in request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
 	if req.Payload == nil {
 		h.logger.Warn().
-			Str("api_key", req.ApiKey).
-			Str("event_id", req.ID).
+			Str("api_key", apiKey).
 			Str("ip", c.ClientIP()).
 			Msg("Missing payload in event request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payload is required"})
@@ -58,27 +60,26 @@ func (h *EventHandler) AddEvent(c *gin.Context) {
 	}
 
 	h.logger.Info().
-		Str("event_id", req.ID).
-		Str("api_key", req.ApiKey).
+		Str("api_key", apiKey).
 		Str("ip", c.ClientIP()).
 		Msg("Processing event request")
 
 	ctx := c.Request.Context()
-	res, err := h.svc.AddEvent(ctx, req)
+	res, err := h.svc.AddEvent(ctx, apiKey, req)
 	if err != nil {
 		h.logger.Error().Err(err).
-			Str("event_id", req.ID).
-			Str("api_key", req.ApiKey).
+			Str("api_key", apiKey).
 			Str("ip", c.ClientIP()).
 			Msg("Failed to add event")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
+	}	
 	h.logger.Info().
-		Str("event_id", req.ID).
-		Str("api_key", req.ApiKey).
+		Str("event_id", res.EventID).
+		Str("api_key", apiKey).
 		Str("ip", c.ClientIP()).
 		Msg("Event added successfully")
-	c.JSON(http.StatusOK, res)
+	
+	c.JSON(http.StatusAccepted, res)
+
 }

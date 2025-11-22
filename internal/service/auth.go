@@ -104,11 +104,12 @@ func (s *AuthService) Signin(ctx context.Context, req SigninRequest) (*AuthRespo
 		return nil, errors.New("invalid credentials")
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Email, s.jwtConfig)
+	token, err := utils.GenerateJWT(user.ID, user.Email, user.Api_Key, s.jwtConfig)
 	if err != nil {
 		s.logger.Error().Err(err).
 			Str("email", req.Email).
 			Str("user_id", user.ID).
+			Str("api_key", user.Api_Key).
 			Msg("Failed to generate JWT token")
 		return nil, err
 	}

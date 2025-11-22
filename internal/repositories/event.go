@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/Vighnesh-V-H/sync/internal/db"
 	"github.com/redis/go-redis/v9"
@@ -24,15 +26,26 @@ func NewEventRepository(db *db.DB, redisClient *redis.Client, log zerolog.Logger
 }
 
 func (r *EventRepository) AddEvent(ctx context.Context, apiKey string, id string, payload map[string]interface{}) error {
+
 	r.log.Debug().
 		Str("api_key", apiKey).
 		Str("event_id", id).
 		Msg("Receiving event for processing")
 
+	queuedKey := fmt.Sprintf("event_queued:%s", id)
+	r.log.Debug().Str("queued_key", queuedKey).Msg("Checking if event already queued")
+	exists, _ := r.redis.Get(ctx, queuedKey).Result()
+	if exists == "1" {
+		r.log.Warn().Str("event_id", id).Msg("Event already queued, skipping")
+		return nil
+	}
+	r.redis.Set(ctx, queuedKey, "1", 24*time.Hour)
+
 	eventData := map[string]interface{}{
-		"api_key": apiKey,
-		"id":      id,
-		"payload": payload,
+		"api_key":   apiKey,
+		"id":        id,
+		"payload":   payload,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 
 	payloadJSON, err := json.Marshal(eventData)

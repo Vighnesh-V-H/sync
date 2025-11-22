@@ -35,7 +35,7 @@ tasks:
     desc: run the cmd/events application with Taskfile watch auto-reload
     cmds:
       - echo "Starting events service..."
-      - "bunx kill-port 8082"
+      - "bunx kill-port 8083"
       - go run cmd/events/main.go
     watch: true
     sources:

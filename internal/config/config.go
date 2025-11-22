@@ -43,9 +43,11 @@ type ServerConfig struct {
 }
 
 type RedisConfig struct {
-	URL      string `koanf:"url" validate:"required,uri"`
-	Password string `koanf:"password"`
-	DB       int    `koanf:"db" validate:"omitempty,min=0,max=15"`
+	URL      string `koanf:"url" validate:"required,uri"` 
+	// Old fields (commented out):
+	// URL      string `koanf:"url" validate:"required,uri"`
+	// Password string `koanf:"password"`
+	// DB       int    `koanf:"db" validate:"omitempty,min=0,max=15"`
 	Timeout  int    `koanf:"timeout" validate:"required,min=1"`
 }
 
@@ -130,7 +132,7 @@ func LoadConfig() (*Config, error) {
 		mainConfig.Server.AuthPort = 8081
 	}
 	if mainConfig.Server.EventsPort == 0 {
-		mainConfig.Server.EventsPort = 8082
+		mainConfig.Server.EventsPort = 8083
 	}
 	if mainConfig.Server.ReadTimeout == 0 {
 		mainConfig.Server.ReadTimeout = 10
@@ -144,9 +146,10 @@ func LoadConfig() (*Config, error) {
 	if mainConfig.Server.CORSAllowedOrigins == nil {
 		mainConfig.Server.CORSAllowedOrigins = []string{"*"}
 	}
-	if mainConfig.Redis.DB == 0 {
-		mainConfig.Redis.DB = 0
-	}
+	// Redis DB default (commented out for Upstash URL mode)
+	// if mainConfig.Redis.DB == 0 {
+	// 	mainConfig.Redis.DB = 0
+	// }
 	if mainConfig.Redis.Timeout == 0 {
 		mainConfig.Redis.Timeout = 5
 	}
